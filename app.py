@@ -569,7 +569,7 @@ elif menu == "Evaluasi Model":
         k = st.number_input("K", 1, len(df), 5)
     with c2:
         m = st.number_input(
-            "m (fuzziness, m > 1)",
+            "m > 1",
             min_value=1.1,
             max_value=5.0,
             value=2.0,
