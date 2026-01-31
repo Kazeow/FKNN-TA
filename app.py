@@ -58,6 +58,8 @@ def fuzzy_membership_latih(kelas, kelas_list):
 def fknn_predict(df, data_uji, k, m):
     fitur = ["tds", "tdd"]
     kelas_list = df["kelas"].unique().tolist()
+    if m <= 1:
+        raise ValueError("Parameter m harus lebih besar dari 1 pada metode FKNN")
 
     norm = df.copy()
     for f in fitur:
@@ -566,7 +568,14 @@ elif menu == "Evaluasi Model":
     with c1:
         k = st.number_input("K", 1, len(df), 5)
     with c2:
-        m = st.number_input("m", value=2)
+        m = st.number_input(
+            "m (fuzziness, m > 1)",
+            min_value=1.1,
+            max_value=5.0,
+            value=2.0,
+            step=0.1
+    )
+
 
     if uploaded and st.button("Jalankan Evaluasi FKNN"):
 
@@ -590,17 +599,22 @@ elif menu == "Evaluasi Model":
 
         # ===== PREDIKSI =====
         for _, row in df_uji.iterrows():
-            hasil, _, _ = fknn_predict(
-                df,
-                {"tds": row["tds"], "tdd": row["tdd"]},
-                k,
-                m
-            )
+            try:
+                hasil, _, _ = fknn_predict(
+                    df,
+                    {"tds": row["tds"], "tdd": row["tdd"]},
+                    k,
+                    m
+                )
+            except ValueError as e:
+                st.error(str(e))
+                st.stop()
+
             y_pred.append(hasil)
             if "kelas" in df_uji.columns:
                 y_true.append(row["kelas"])
-
         df_uji["kelas_prediksi"] = y_pred
+
 
         st.markdown("""
         <div class="card">
@@ -611,15 +625,36 @@ elif menu == "Evaluasi Model":
 
         # ===== EVALUASI =====
         if "kelas" in df_uji.columns:
-            acc = (df_uji["kelas"] == df_uji["kelas_prediksi"]).mean() * 100
+            total_data = len(df_uji)
+            jumlah_benar = (df_uji["kelas"] == df_uji["kelas_prediksi"]).sum()
+            jumlah_salah = (df_uji["kelas"] != df_uji["kelas_prediksi"]).sum()
+            akurasi = (jumlah_benar / total_data) * 100
+
             
             st.markdown(f"""
             <div class="card">
-                <h3>Metrik Evaluasi</h3>
-                <p><strong>Akurasi:</strong> {acc:.2f}%</p>
+                <h3>Ringkasan Evaluasi Model</h3>
+                <table style="width:100%">
+                    <tr>
+                        <td>Jumlah Data Uji</td>
+                        <td>: {total_data}</td>
+                    </tr>
+                    <tr>
+                        <td>Prediksi Benar</td>
+                        <td>: {jumlah_benar}</td>
+                    </tr>
+                    <tr>
+                        <td>Prediksi Salah</td>
+                        <td>: {jumlah_salah}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Akurasi (%)</strong></td>
+                        <td><strong>: {akurasi:.2f}%</strong></td>
+                    </tr>
+                </table>
             </div>
             """, unsafe_allow_html=True)
-
+            # ===== CONFUSION MATRIX & CLASSIFICATION REPORT =====
             cm = confusion_matrix(y_true, y_pred)
             fig, ax = plt.subplots(figsize=(8, 6))
             sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
