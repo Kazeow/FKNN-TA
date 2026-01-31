@@ -397,7 +397,12 @@ elif menu == "Perhitungan FKNN":
     with c3:
         k = st.number_input("K", min_value=1, max_value=len(df), value=5)
 
-    m = st.number_input("m (pangkat fuzzy)", value=2)
+    m = st.number_input(
+        "m (pangkat fuzzy)",
+        min_value=1.01,
+        value=2.0,
+        step=0.1
+    )
 
     # ================= PROSES =================
     if st.button("Hitung FKNN"):
@@ -461,6 +466,7 @@ elif menu == "Perhitungan FKNN":
             header=file_kosong(TETANGGA),
             index=False
         )
+        
 
         # ---------- Simpan Keanggotaan ----------
         mu_df = pd.DataFrame([
